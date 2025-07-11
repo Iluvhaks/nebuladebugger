@@ -1,6 +1,5 @@
--- Nebula Debugger - Full Updated Script
--- Made for loadstring use, includes Local Player and Debugger tabs
--- Theme: Purple / Gold / White
+-- Nebula Debugger - Ultra Advanced Version
+-- Enhanced debugging, adaptive anticheat bypass, smart logging, and admin detection
 
 local Rayfield = (function()
     local success, RayfieldModule = pcall(function()
@@ -20,17 +19,29 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
+
+-- Helpers
+local function notify(text)
+    Rayfield:Notify({Title = "Nebula Debugger", Content = text, Duration = 4})
+end
+
+local function safePcall(fn, ...)
+    local ok, res = pcall(fn, ...)
+    if ok then return res end
+    return nil
+end
 
 -- UI Setup
 local Window = Rayfield:CreateWindow({
     Name = "Nebula Debugger",
     LoadingTitle = "Nebula Debugger",
-    SubText = "Purple | Gold | White Theme",
+    SubText = "Purple | Gold | White Theme - Ultra Advanced",
     Theme = {
-        Accent = Color3.fromRGB(156, 0, 255), -- Purple
-        Outline = Color3.fromRGB(255, 215, 0), -- Gold
-        TextColor = Color3.fromRGB(255, 255, 255), -- White
-        Background = Color3.fromRGB(20, 20, 20), -- Dark background
+        Accent = Color3.fromRGB(156, 0, 255),
+        Outline = Color3.fromRGB(255, 215, 0),
+        TextColor = Color3.fromRGB(255, 255, 255),
+        Background = Color3.fromRGB(20, 20, 20),
     },
     ConfigurationSaving = {
         Enabled = true,
@@ -38,17 +49,14 @@ local Window = Rayfield:CreateWindow({
         FileName = "Settings"
     },
     KeySystem = false,
-    Discord = {
-        Enabled = false
-    }
+    Discord = { Enabled = false }
 })
 
--- Tabs
 local LocalPlayerTab = Window:CreateTab("👤 Local Player")
 local DebuggerTab = Window:CreateTab("🐞 Debugger")
 
 -----------------------------
--- Local Player Tab Setup
+-- Local Player Tab (Same as before) --
 -----------------------------
 local WalkSpeedValue = 16
 local JumpPowerValue = 50
@@ -62,17 +70,13 @@ local walkSpeedToggle = LocalPlayerTab:CreateToggle({
             local char = LocalPlayer.Character
             if char then
                 local humanoid = char:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    humanoid.WalkSpeed = WalkSpeedValue
-                end
+                if humanoid then humanoid.WalkSpeed = WalkSpeedValue end
             end
         else
             local char = LocalPlayer.Character
             if char then
                 local humanoid = char:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    humanoid.WalkSpeed = 16
-                end
+                if humanoid then humanoid.WalkSpeed = 16 end
             end
         end
     end
@@ -90,9 +94,7 @@ local speedSlider = LocalPlayerTab:CreateSlider({
             local char = LocalPlayer.Character
             if char then
                 local humanoid = char:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    humanoid.WalkSpeed = WalkSpeedValue
-                end
+                if humanoid then humanoid.WalkSpeed = WalkSpeedValue end
             end
         end
     end
@@ -116,9 +118,7 @@ local jumpPowerToggle = LocalPlayerTab:CreateToggle({
             local char = LocalPlayer.Character
             if char then
                 local humanoid = char:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    humanoid.JumpPower = 50
-                end
+                if humanoid then humanoid.JumpPower = 50 end
             end
         end
     end
@@ -145,7 +145,6 @@ local jumpSlider = LocalPlayerTab:CreateSlider({
     end
 })
 
--- Update Humanoid on character respawn
 LocalPlayer.CharacterAdded:Connect(function(char)
     char:WaitForChild("Humanoid")
     if walkSpeedToggle:GetValue() then
@@ -158,7 +157,7 @@ LocalPlayer.CharacterAdded:Connect(function(char)
 end)
 
 -----------------------------
--- Debugger Tab Setup
+-- Debugger Tab Advanced Features --
 -----------------------------
 
 local anticheatBypassEnabled = false
@@ -169,8 +168,9 @@ local remoteLoggerConnection = nil
 local autoRespawnEnabled = false
 local commandLoggerEnabled = false
 local infJumpDebugEnabled = false
+local chatLoggerConnection = nil
 
--- Hook kick to prevent forced kick (Anti-kick)
+-- Advanced Anticheat Bypass --
 local function hookKick()
     if kickHooked then return end
     local mt = getrawmetatable(game)
@@ -178,17 +178,39 @@ local function hookKick()
     local oldNamecall = mt.__namecall
     mt.__namecall = newcclosure(function(self, ...)
         local method = getnamecallmethod()
-        if method == "Kick" then
+        local args = {...}
+
+        -- Block forced kick attempts dynamically
+        if method == "Kick" or method == "kick" then
+            notify("[AntiKick] Blocked kick attempt.")
             return wait(9e9)
         end
+
+        -- Block teleport or position reset protections by ignoring suspicious CFrame sets
+        if method == "FireServer" and tostring(self) == "HumanoidRootPart" then
+            if args[1] and typeof(args[1]) == "CFrame" then
+                -- Example heuristic: prevent large sudden teleport
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local hrp = char.HumanoidRootPart
+                    local dist = (args[1].p - hrp.Position).Magnitude
+                    if dist > 50 then
+                        notify("[AntiTP] Blocked suspicious teleport attempt.")
+                        return
+                    end
+                end
+            end
+        end
+
         return oldNamecall(self, ...)
     end)
     setreadonly(mt, true)
     kickHooked = true
+    notify("[Anticheat Bypass] Hooks applied.")
 end
 
 DebuggerTab:CreateToggle({
-    Name = "Anticheat Bypasser",
+    Name = "Anticheat Bypasser (Adaptive)",
     CurrentValue = false,
     Callback = function(enabled)
         anticheatBypassEnabled = enabled
@@ -199,13 +221,15 @@ DebuggerTab:CreateToggle({
                 originalPosition = char.HumanoidRootPart.CFrame
             end
 
+            if positionRestoreConnection then positionRestoreConnection:Disconnect() end
             positionRestoreConnection = RunService.Heartbeat:Connect(function()
                 if not anticheatBypassEnabled then return end
                 local char = LocalPlayer.Character
                 if char and char:FindFirstChild("HumanoidRootPart") and originalPosition then
                     local hrp = char.HumanoidRootPart
                     local dist = (hrp.Position - originalPosition.Position).Magnitude
-                    if dist > 50 then
+                    if dist > 60 then -- increased threshold
+                        notify("[AntiTP] Restoring position to prevent detection.")
                         hrp.CFrame = originalPosition
                     else
                         originalPosition = hrp.CFrame
@@ -214,43 +238,85 @@ DebuggerTab:CreateToggle({
             end)
 
             StarterGui:SetCore("ResetButtonCallback", false)
-            Rayfield:Notify({Title = "Nebula Debugger", Content = "Anticheat Bypasser Enabled", Duration = 3})
+            notify("Anticheat Bypasser Enabled")
         else
             if positionRestoreConnection then
                 positionRestoreConnection:Disconnect()
                 positionRestoreConnection = nil
             end
             StarterGui:SetCore("ResetButtonCallback", true)
-            Rayfield:Notify({Title = "Nebula Debugger", Content = "Anticheat Bypasser Disabled", Duration = 3})
+            notify("Anticheat Bypasser Disabled")
         end
     end
 })
 
+-- Optimized Remote Call Logger --
+local remoteCallLogCache = {}
+local function isRemoteSuspicious(remoteName, args)
+    -- Example heuristics:
+    -- Flag remote names with suspicious keywords or unusual argument count/types
+    local suspiciousKeywords = {"kick", "ban", "admin", "shutdown", "lock"}
+    local lowerName = remoteName:lower()
+    for _, keyword in ipairs(suspiciousKeywords) do
+        if string.find(lowerName, keyword) then
+            return true, "Suspicious name"
+        end
+    end
+
+    if #args > 5 then
+        return true, "Too many args"
+    end
+
+    return false
+end
+
 DebuggerTab:CreateToggle({
-    Name = "Log Remote Calls",
+    Name = "Smart Remote Calls Logger",
     CurrentValue = false,
     Callback = function(enabled)
         if enabled then
             remoteLoggerConnection = RunService.Stepped:Connect(function()
                 for _, obj in pairs(workspace:GetDescendants()) do
                     if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-                        print("[Remote] " .. obj:GetFullName())
+                        local name = obj.Name
+                        -- Avoid spamming: log once per remote per second max
+                        if not remoteCallLogCache[obj] or (tick() - remoteCallLogCache[obj]) > 1 then
+                            remoteCallLogCache[obj] = tick()
+                            -- Try to hook FireServer for RemoteEvents to intercept calls
+                            if obj:IsA("RemoteEvent") then
+                                local mt = getrawmetatable(obj)
+                                setreadonly(mt, false)
+                                local oldFireServer = obj.FireServer
+                                obj.FireServer = function(self, ...)
+                                    local args = {...}
+                                    local suspicious, reason = isRemoteSuspicious(name, args)
+                                    if suspicious then
+                                        print(("[RemoteEvent] %s called with suspicious args (%s)"):format(name, reason))
+                                    else
+                                        print("[RemoteEvent] " .. name .. " called")
+                                    end
+                                    return oldFireServer(self, ...)
+                                end
+                                setreadonly(mt, true)
+                            end
+                        end
                     end
                 end
             end)
-            Rayfield:Notify({Title = "Nebula Debugger", Content = "Remote Calls Logger Enabled", Duration = 3})
+            notify("Smart Remote Calls Logger Enabled")
         else
             if remoteLoggerConnection then
                 remoteLoggerConnection:Disconnect()
                 remoteLoggerConnection = nil
             end
-            Rayfield:Notify({Title = "Nebula Debugger", Content = "Remote Calls Logger Disabled", Duration = 3})
+            notify("Smart Remote Calls Logger Disabled")
         end
     end
 })
 
+-- Auto Respawn (Improved with event hooks) --
 DebuggerTab:CreateToggle({
-    Name = "Auto Respawn",
+    Name = "Auto Respawn (Reliable)",
     CurrentValue = false,
     Callback = function(enabled)
         autoRespawnEnabled = enabled
@@ -258,25 +324,63 @@ DebuggerTab:CreateToggle({
             spawn(function()
                 while autoRespawnEnabled do
                     local char = LocalPlayer.Character
-                    if not char or (char:FindFirstChildOfClass("Humanoid") and char:FindFirstChildOfClass("Humanoid").Health <= 0) then
+                    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+                    if not char or (humanoid and humanoid.Health <= 0) then
                         LocalPlayer:LoadCharacter()
+                        notify("[Auto Respawn] Character respawned.")
+                        task.wait(1) -- small cooldown before checking again
                     end
-                    task.wait(2)
+                    task.wait(0.5)
                 end
             end)
-            Rayfield:Notify({Title = "Nebula Debugger", Content = "Auto Respawn Enabled", Duration = 3})
         else
-            Rayfield:Notify({Title = "Nebula Debugger", Content = "Auto Respawn Disabled", Duration = 3})
+            notify("[Auto Respawn] Disabled.")
         end
     end
 })
 
+-- Advanced Command Logger --
+local function hookChatCommands()
+    if chatLoggerConnection then chatLoggerConnection:Disconnect() chatLoggerConnection = nil end
+    chatLoggerConnection = Players.PlayerChatted:Connect(function(player, message)
+        if player == LocalPlayer then
+            print(("[Chat Command] You typed: %s"):format(message))
+        else
+            print(("[Chat Command] %s said: %s"):format(player.Name, message))
+        end
+        -- Simple command detection (starts with ! or /)
+        if message:sub(1,1) == "!" or message:sub(1,1) == "/" then
+            notify("[Command Logger] Command detected: " .. message)
+        end
+    end)
+end
+
+DebuggerTab:CreateToggle({
+    Name = "Command Logger (Chat & Remote)",
+    CurrentValue = false,
+    Callback = function(enabled)
+        commandLoggerEnabled = enabled
+        if enabled then
+            hookChatCommands()
+            notify("Command Logger Enabled")
+        else
+            if chatLoggerConnection then
+                chatLoggerConnection:Disconnect()
+                chatLoggerConnection = nil
+            end
+            notify("Command Logger Disabled")
+        end
+    end
+})
+
+-- Infinite Jump Debugging (same)
+local infJumpDebugEnabled = false
 DebuggerTab:CreateToggle({
     Name = "Infinite Jump Debug",
     CurrentValue = false,
     Callback = function(enabled)
         infJumpDebugEnabled = enabled
-        Rayfield:Notify({Title = "Nebula Debugger", Content = "Infinite Jump Debug " .. (enabled and "Enabled" or "Disabled"), Duration = 3})
+        notify("Infinite Jump Debug " .. (enabled and "Enabled" or "Disabled"))
     end
 })
 
@@ -286,6 +390,84 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
+-- Dynamic Admin Detection & Interaction --
+local knownAdmins = {
+    {Name = "Kohl's Admin", GuiNames = {"KohlAdmin", "KohlAdminGui"}, TryOpen = function()
+        local gui = CoreGui:FindFirstChild("KohlAdmin") or CoreGui:FindFirstChild("KohlAdminGui")
+        if gui then
+            gui.Enabled = true
+            return true
+        end
+        return false
+    end},
+    {Name = "Adonis Admin", GuiNames = {"Adonis", "AdonisAdmin"}, TryOpen = function()
+        local gui = CoreGui:FindFirstChild("Adonis") or CoreGui:FindFirstChild("AdonisAdmin")
+        if gui then
+            gui.Enabled = true
+            return true
+        end
+        return false
+    end},
+    {Name = "HD Admin", GuiNames = {"HDAdmin"}, TryOpen = function()
+        local gui = workspace:FindFirstChild("HDAdmin") or CoreGui:FindFirstChild("HDAdmin")
+        if gui then
+            gui.Enabled = true
+            return true
+        end
+        return false
+    end},
+    {Name = "CMD-X", GuiNames = {"CmdXGui"}, TryOpen = function()
+        local gui = CoreGui:FindFirstChild("CmdXGui")
+        if gui then
+            gui.Enabled = true
+            return true
+        end
+        return false
+    end},
+    {Name = "Owl Admin", GuiNames = {"OwlAdmin"}, TryOpen = function()
+        local gui = CoreGui:FindFirstChild("OwlAdmin")
+        if gui then
+            gui.Enabled = true
+            return true
+        end
+        return false
+    end}
+}
+
+local function scanAndTryGetAdmin()
+    notify("Scanning for admin panels...")
+    local foundAny = false
+    for _, admin in ipairs(knownAdmins) do
+        for _, guiName in ipairs(admin.GuiNames) do
+            local gui = CoreGui:FindFirstChild(guiName) or workspace:FindFirstChild(guiName)
+            if gui then
+                print(("[Admin Detector] Found %s GUI: %s"):format(admin.Name, guiName))
+                foundAny = true
+                local success, opened = pcall(admin.TryOpen)
+                if success and opened then
+                    notify("[Admin Detector] Opened " .. admin.Name .. " GUI.")
+                else
+                    notify("[Admin Detector] Failed to open " .. admin.Name .. " GUI.")
+                end
+                -- Attempt commands if possible
+                -- Example: Try to send a common command if exposed, or trigger click on buttons
+                -- This part depends heavily on the specific admin GUI structure,
+                -- so here we just log detection and opening for safety
+            end
+        end
+    end
+    if not foundAny then
+        notify("No known admin panels found.")
+        print("[Admin Detector] No known admin panels found.")
+    end
+end
+
+DebuggerTab:CreateButton({
+    Name = "Detect & Try Get Admin",
+    Callback = scanAndTryGetAdmin
+})
+
+-- Server Info button (optional)
 DebuggerTab:CreateButton({
     Name = "Log Server Info",
     Callback = function()
@@ -306,70 +488,6 @@ DebuggerTab:CreateButton({
     end
 })
 
-DebuggerTab:CreateToggle({
-    Name = "Command Logger",
-    CurrentValue = false,
-    Callback = function(enabled)
-        commandLoggerEnabled = enabled
-        if enabled then
-            Rayfield:Notify({Title = "Nebula Debugger", Content = "Command Logger Enabled", Duration = 3})
-            print("[Nebula Debugger] Command Logger enabled - expand this for your game's commands")
-            -- Hook into chat or remotes here if desired
-        else
-            Rayfield:Notify({Title = "Nebula Debugger", Content = "Command Logger Disabled", Duration = 3})
-            print("[Nebula Debugger] Command Logger disabled")
-        end
-    end
-})
+-- Ready notification
+notify("Nebula Debugger Ultra Advanced Loaded")
 
-DebuggerTab:CreateButton({
-    Name = "Get Admin",
-    Callback = function()
-        print("[Nebula Debugger] Detecting admin panels...")
-        local detected = false
-
-        local adminPanels = {
-            {Name = "Kohl's Admin", Detect = function() 
-                return pcall(function()
-                    return game:GetService("CoreGui"):FindFirstChild("KohlAdmin") or game:GetService("CoreGui"):FindFirstChild("KohlAdminGui")
-                end)
-            end},
-            {Name = "Adonis Admin", Detect = function()
-                return pcall(function()
-                    return game:GetService("CoreGui"):FindFirstChild("Adonis") or game:GetService("CoreGui"):FindFirstChild("AdonisAdmin")
-                end)
-            end},
-            {Name = "HD Admin", Detect = function()
-                return pcall(function()
-                    return workspace:FindFirstChild("HDAdmin") or game:GetService("CoreGui"):FindFirstChild("HDAdmin")
-                end)
-            end},
-            {Name = "CMD-X", Detect = function()
-                return pcall(function()
-                    return game:GetService("CoreGui"):FindFirstChild("CmdXGui")
-                end)
-            end},
-            {Name = "Owl Admin", Detect = function()
-                return pcall(function()
-                    return game:GetService("CoreGui"):FindFirstChild("OwlAdmin")
-                end)
-            end}
-        }
-
-        for _, admin in pairs(adminPanels) do
-            local success, found = admin.Detect()
-            if success and found then
-                print("[Nebula Debugger] Admin panel detected: " .. admin.Name)
-                detected = true
-                -- You can add commands to open GUIs or inject commands here
-            end
-        end
-
-        if not detected then
-            print("[Nebula Debugger] No admin panel detected.")
-        end
-    end
-})
-
--- Notify ready
-Rayfield:Notify({Title="Nebula Debugger", Content="Loaded Successfully", Duration=3})
