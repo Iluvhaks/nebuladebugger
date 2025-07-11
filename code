@@ -1,118 +1,375 @@
--- Load Rayfield UI
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+-- Nebula Debugger - Full Updated Script
+-- Made for loadstring use, includes Local Player and Debugger tabs
+-- Theme: Purple / Gold / White
 
--- Create window with purple/gold/white theme (customize theme colors)
+local Rayfield = (function()
+    local success, RayfieldModule = pcall(function()
+        return loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+    end)
+    if success and RayfieldModule then
+        return RayfieldModule
+    else
+        error("Failed to load Rayfield UI")
+    end
+end)()
+
+-- Services
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- UI Setup
 local Window = Rayfield:CreateWindow({
-    Name = "Nebula Hub Debugger",
-    LoadingTitle = "Loading Nebula Hub Debugger...",
-    LoadingSubtitle = "By You",
+    Name = "Nebula Debugger",
+    LoadingTitle = "Nebula Debugger",
+    SubText = "Purple | Gold | White Theme",
+    Theme = {
+        Accent = Color3.fromRGB(156, 0, 255), -- Purple
+        Outline = Color3.fromRGB(255, 215, 0), -- Gold
+        TextColor = Color3.fromRGB(255, 255, 255), -- White
+        Background = Color3.fromRGB(20, 20, 20), -- Dark background
+    },
     ConfigurationSaving = {
         Enabled = true,
-        FolderName = "NebulaHubDebugger",
+        FolderName = "NebulaDebugger",
         FileName = "Settings"
     },
-    Discord = {
-        Enabled = false,
-    },
     KeySystem = false,
+    Discord = {
+        Enabled = false
+    }
 })
 
--- Local Player Tab
-local LocalPlayerTab = Window:CreateTab("Local Player")
+-- Tabs
+local LocalPlayerTab = Window:CreateTab("👤 Local Player")
+local DebuggerTab = Window:CreateTab("🐞 Debugger")
 
-local jumpPower = 50
-local walkSpeed = 16
-local jumpPowerEnabled = false
-local walkSpeedEnabled = false
+-----------------------------
+-- Local Player Tab Setup
+-----------------------------
+local WalkSpeedValue = 16
+local JumpPowerValue = 50
 
--- Jump Power slider
-local JumpSlider = LocalPlayerTab:CreateSlider({
-    Name = "Jump Power",
-    Range = {50, 250},
-    Increment = 1,
-    CurrentValue = jumpPower,
-    Flag = "JumpPowerSlider",
-    Callback = function(value)
-        jumpPower = value
-        if jumpPowerEnabled and game.Players.LocalPlayer.Character then
-            local humanoid = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.JumpPower = jumpPower
+local walkSpeedToggle = LocalPlayerTab:CreateToggle({
+    Name = "Enable WalkSpeed",
+    CurrentValue = false,
+    Flag = "WalkSpeedToggle",
+    Callback = function(enabled)
+        if enabled then
+            local char = LocalPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.WalkSpeed = WalkSpeedValue
+                end
+            end
+        else
+            local char = LocalPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.WalkSpeed = 16
+                end
             end
         end
-    end,
+    end
 })
 
--- Jump Power toggle
-LocalPlayerTab:CreateToggle({
-    Name = "Enable Jump Power",
-    CurrentValue = jumpPowerEnabled,
-    Flag = "JumpPowerToggle",
-    Callback = function(enabled)
-        jumpPowerEnabled = enabled
-        local humanoid = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.JumpPower = enabled and jumpPower or 50
-        end
-    end,
-})
-
--- Walk Speed slider
-local SpeedSlider = LocalPlayerTab:CreateSlider({
+local speedSlider = LocalPlayerTab:CreateSlider({
     Name = "Walk Speed",
     Range = {16, 250},
     Increment = 1,
-    CurrentValue = walkSpeed,
+    CurrentValue = WalkSpeedValue,
     Flag = "WalkSpeedSlider",
     Callback = function(value)
-        walkSpeed = value
-        if walkSpeedEnabled and game.Players.LocalPlayer.Character then
-            local humanoid = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = walkSpeed
+        WalkSpeedValue = value
+        if walkSpeedToggle:GetValue() then
+            local char = LocalPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.WalkSpeed = WalkSpeedValue
+                end
             end
         end
-    end,
+    end
 })
 
--- Walk Speed toggle
-LocalPlayerTab:CreateToggle({
-    Name = "Enable Walk Speed",
-    CurrentValue = walkSpeedEnabled,
-    Flag = "WalkSpeedToggle",
+local jumpPowerToggle = LocalPlayerTab:CreateToggle({
+    Name = "Enable Jump Power",
+    CurrentValue = false,
+    Flag = "JumpPowerToggle",
     Callback = function(enabled)
-        walkSpeedEnabled = enabled
-        local humanoid = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.WalkSpeed = enabled and walkSpeed or 16
-        end
-    end,
-})
-
--- Debugging Tab
-local DebugTab = Window:CreateTab("Debugging")
-
-DebugTab:CreateButton({
-    Name = "Print Player Info",
-    Callback = function()
-        local player = game.Players.LocalPlayer
-        if player and player.Character then
-            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-            print("Player Name:", player.Name)
-            print("Health:", humanoid and humanoid.Health or "N/A")
-            print("WalkSpeed:", humanoid and humanoid.WalkSpeed or "N/A")
-            print("JumpPower:", humanoid and humanoid.JumpPower or "N/A")
+        if enabled then
+            local char = LocalPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.UseJumpPower = true
+                    humanoid.JumpPower = JumpPowerValue
+                end
+            end
         else
-            print("No character loaded")
+            local char = LocalPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.JumpPower = 50
+                end
+            end
         end
-    end,
+    end
 })
 
--- Ensure sliders/toggles work on respawn
-game.Players.LocalPlayer.CharacterAdded:Connect(function(char)
-    local humanoid = char:WaitForChild("Humanoid", 10)
-    if humanoid then
-        humanoid.JumpPower = jumpPowerEnabled and jumpPower or 50
-        humanoid.WalkSpeed = walkSpeedEnabled and walkSpeed or 16
+local jumpSlider = LocalPlayerTab:CreateSlider({
+    Name = "Jump Power",
+    Range = {50, 250},
+    Increment = 1,
+    CurrentValue = JumpPowerValue,
+    Flag = "JumpPowerSlider",
+    Callback = function(value)
+        JumpPowerValue = value
+        if jumpPowerToggle:GetValue() then
+            local char = LocalPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.UseJumpPower = true
+                    humanoid.JumpPower = JumpPowerValue
+                end
+            end
+        end
+    end
+})
+
+-- Update Humanoid on character respawn
+LocalPlayer.CharacterAdded:Connect(function(char)
+    char:WaitForChild("Humanoid")
+    if walkSpeedToggle:GetValue() then
+        char.Humanoid.WalkSpeed = WalkSpeedValue
+    end
+    if jumpPowerToggle:GetValue() then
+        char.Humanoid.UseJumpPower = true
+        char.Humanoid.JumpPower = JumpPowerValue
     end
 end)
+
+-----------------------------
+-- Debugger Tab Setup
+-----------------------------
+
+local anticheatBypassEnabled = false
+local kickHooked = false
+local positionRestoreConnection = nil
+local originalPosition = nil
+local remoteLoggerConnection = nil
+local autoRespawnEnabled = false
+local commandLoggerEnabled = false
+local infJumpDebugEnabled = false
+
+-- Hook kick to prevent forced kick (Anti-kick)
+local function hookKick()
+    if kickHooked then return end
+    local mt = getrawmetatable(game)
+    setreadonly(mt, false)
+    local oldNamecall = mt.__namecall
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if method == "Kick" then
+            return wait(9e9)
+        end
+        return oldNamecall(self, ...)
+    end)
+    setreadonly(mt, true)
+    kickHooked = true
+end
+
+DebuggerTab:CreateToggle({
+    Name = "Anticheat Bypasser",
+    CurrentValue = false,
+    Callback = function(enabled)
+        anticheatBypassEnabled = enabled
+        if enabled then
+            hookKick()
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                originalPosition = char.HumanoidRootPart.CFrame
+            end
+
+            positionRestoreConnection = RunService.Heartbeat:Connect(function()
+                if not anticheatBypassEnabled then return end
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") and originalPosition then
+                    local hrp = char.HumanoidRootPart
+                    local dist = (hrp.Position - originalPosition.Position).Magnitude
+                    if dist > 50 then
+                        hrp.CFrame = originalPosition
+                    else
+                        originalPosition = hrp.CFrame
+                    end
+                end
+            end)
+
+            StarterGui:SetCore("ResetButtonCallback", false)
+            Rayfield:Notify({Title = "Nebula Debugger", Content = "Anticheat Bypasser Enabled", Duration = 3})
+        else
+            if positionRestoreConnection then
+                positionRestoreConnection:Disconnect()
+                positionRestoreConnection = nil
+            end
+            StarterGui:SetCore("ResetButtonCallback", true)
+            Rayfield:Notify({Title = "Nebula Debugger", Content = "Anticheat Bypasser Disabled", Duration = 3})
+        end
+    end
+})
+
+DebuggerTab:CreateToggle({
+    Name = "Log Remote Calls",
+    CurrentValue = false,
+    Callback = function(enabled)
+        if enabled then
+            remoteLoggerConnection = RunService.Stepped:Connect(function()
+                for _, obj in pairs(workspace:GetDescendants()) do
+                    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+                        print("[Remote] " .. obj:GetFullName())
+                    end
+                end
+            end)
+            Rayfield:Notify({Title = "Nebula Debugger", Content = "Remote Calls Logger Enabled", Duration = 3})
+        else
+            if remoteLoggerConnection then
+                remoteLoggerConnection:Disconnect()
+                remoteLoggerConnection = nil
+            end
+            Rayfield:Notify({Title = "Nebula Debugger", Content = "Remote Calls Logger Disabled", Duration = 3})
+        end
+    end
+})
+
+DebuggerTab:CreateToggle({
+    Name = "Auto Respawn",
+    CurrentValue = false,
+    Callback = function(enabled)
+        autoRespawnEnabled = enabled
+        if enabled then
+            spawn(function()
+                while autoRespawnEnabled do
+                    local char = LocalPlayer.Character
+                    if not char or (char:FindFirstChildOfClass("Humanoid") and char:FindFirstChildOfClass("Humanoid").Health <= 0) then
+                        LocalPlayer:LoadCharacter()
+                    end
+                    task.wait(2)
+                end
+            end)
+            Rayfield:Notify({Title = "Nebula Debugger", Content = "Auto Respawn Enabled", Duration = 3})
+        else
+            Rayfield:Notify({Title = "Nebula Debugger", Content = "Auto Respawn Disabled", Duration = 3})
+        end
+    end
+})
+
+DebuggerTab:CreateToggle({
+    Name = "Infinite Jump Debug",
+    CurrentValue = false,
+    Callback = function(enabled)
+        infJumpDebugEnabled = enabled
+        Rayfield:Notify({Title = "Nebula Debugger", Content = "Infinite Jump Debug " .. (enabled and "Enabled" or "Disabled"), Duration = 3})
+    end
+})
+
+UserInputService.JumpRequest:Connect(function()
+    if infJumpDebugEnabled then
+        print("[Nebula Debugger] Jump Press Detected")
+    end
+end)
+
+DebuggerTab:CreateButton({
+    Name = "Log Server Info",
+    Callback = function()
+        print("===== Server Info =====")
+        print("PlaceId:", game.PlaceId)
+        print("JobId:", game.JobId)
+        local sss = game:GetService("ServerScriptService")
+        local ss = game:GetService("ServerStorage")
+
+        print("ServerScriptService Contents:")
+        for _, v in pairs(sss:GetChildren()) do
+            print(" - " .. v.Name .. " (" .. v.ClassName .. ")")
+        end
+        print("ServerStorage Contents:")
+        for _, v in pairs(ss:GetChildren()) do
+            print(" - " .. v.Name .. " (" .. v.ClassName .. ")")
+        end
+    end
+})
+
+DebuggerTab:CreateToggle({
+    Name = "Command Logger",
+    CurrentValue = false,
+    Callback = function(enabled)
+        commandLoggerEnabled = enabled
+        if enabled then
+            Rayfield:Notify({Title = "Nebula Debugger", Content = "Command Logger Enabled", Duration = 3})
+            print("[Nebula Debugger] Command Logger enabled - expand this for your game's commands")
+            -- Hook into chat or remotes here if desired
+        else
+            Rayfield:Notify({Title = "Nebula Debugger", Content = "Command Logger Disabled", Duration = 3})
+            print("[Nebula Debugger] Command Logger disabled")
+        end
+    end
+})
+
+DebuggerTab:CreateButton({
+    Name = "Get Admin",
+    Callback = function()
+        print("[Nebula Debugger] Detecting admin panels...")
+        local detected = false
+
+        local adminPanels = {
+            {Name = "Kohl's Admin", Detect = function() 
+                return pcall(function()
+                    return game:GetService("CoreGui"):FindFirstChild("KohlAdmin") or game:GetService("CoreGui"):FindFirstChild("KohlAdminGui")
+                end)
+            end},
+            {Name = "Adonis Admin", Detect = function()
+                return pcall(function()
+                    return game:GetService("CoreGui"):FindFirstChild("Adonis") or game:GetService("CoreGui"):FindFirstChild("AdonisAdmin")
+                end)
+            end},
+            {Name = "HD Admin", Detect = function()
+                return pcall(function()
+                    return workspace:FindFirstChild("HDAdmin") or game:GetService("CoreGui"):FindFirstChild("HDAdmin")
+                end)
+            end},
+            {Name = "CMD-X", Detect = function()
+                return pcall(function()
+                    return game:GetService("CoreGui"):FindFirstChild("CmdXGui")
+                end)
+            end},
+            {Name = "Owl Admin", Detect = function()
+                return pcall(function()
+                    return game:GetService("CoreGui"):FindFirstChild("OwlAdmin")
+                end)
+            end}
+        }
+
+        for _, admin in pairs(adminPanels) do
+            local success, found = admin.Detect()
+            if success and found then
+                print("[Nebula Debugger] Admin panel detected: " .. admin.Name)
+                detected = true
+                -- You can add commands to open GUIs or inject commands here
+            end
+        end
+
+        if not detected then
+            print("[Nebula Debugger] No admin panel detected.")
+        end
+    end
+})
+
+-- Notify ready
+Rayfield:Notify({Title="Nebula Debugger", Content="Loaded Successfully", Duration=3})
