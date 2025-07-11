@@ -1,0 +1,369 @@
+-- Nebula Hub Debugger
+-- Homemade GUI, purple/white/gold theme
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- GUI COLORS
+local COLOR_BG = Color3.fromRGB(40, 32, 60)         -- Dark purple background
+local COLOR_ACCENT = Color3.fromRGB(255, 215, 0)    -- Gold accent
+local COLOR_WHITE = Color3.fromRGB(255, 255, 255)   -- White text
+
+-- Create ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "NebulaHubDebuggerGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game:GetService("CoreGui")
+
+-- Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 420, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -210, 0.5, -175)
+MainFrame.BackgroundColor3 = COLOR_BG
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+
+-- UI Corner for rounding
+local function addUICorner(frame, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius)
+    corner.Parent = frame
+end
+addUICorner(MainFrame, 12)
+
+-- Title Bar
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 36)
+TitleBar.BackgroundColor3 = COLOR_ACCENT
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
+addUICorner(TitleBar, 12)
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "TitleLabel"
+TitleLabel.Size = UDim2.new(1, -20, 1, 0)
+TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "Nebula Hub Debugger"
+TitleLabel.TextColor3 = COLOR_WHITE
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextSize = 20
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Parent = TitleBar
+
+-- Close Button
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 36, 0, 36)
+CloseButton.Position = UDim2.new(1, -36, 0, 0)
+CloseButton.BackgroundColor3 = COLOR_BG
+CloseButton.BorderSizePixel = 0
+CloseButton.Text = "X"
+CloseButton.TextColor3 = COLOR_WHITE
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 20
+CloseButton.Parent = TitleBar
+
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Tab Buttons Container
+local TabButtonsFrame = Instance.new("Frame")
+TabButtonsFrame.Name = "TabButtonsFrame"
+TabButtonsFrame.Size = UDim2.new(1, 0, 0, 40)
+TabButtonsFrame.Position = UDim2.new(0, 0, 0, 36)
+TabButtonsFrame.BackgroundColor3 = COLOR_BG
+TabButtonsFrame.BorderSizePixel = 0
+TabButtonsFrame.Parent = MainFrame
+
+local function createTabButton(name, posX)
+    local btn = Instance.new("TextButton")
+    btn.Name = name.."TabButton"
+    btn.Size = UDim2.new(0, 140, 1, 0)
+    btn.Position = UDim2.new(0, posX, 0, 0)
+    btn.BackgroundColor3 = COLOR_ACCENT
+    btn.BorderSizePixel = 0
+    btn.Text = name
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 16
+    btn.TextColor3 = COLOR_BG
+    btn.Parent = TabButtonsFrame
+    addUICorner(btn, 6)
+    return btn
+end
+
+local localPlayerTabBtn = createTabButton("Local Player", 10)
+local debugTabBtn = createTabButton("Debugging", 150)
+
+-- Tabs Container
+local TabsContainer = Instance.new("Frame")
+TabsContainer.Name = "TabsContainer"
+TabsContainer.Size = UDim2.new(1, 0, 1, -76)
+TabsContainer.Position = UDim2.new(0, 0, 0, 76)
+TabsContainer.BackgroundColor3 = COLOR_BG
+TabsContainer.BorderSizePixel = 0
+TabsContainer.Parent = MainFrame
+
+-- Utility function to clear children of tab container
+local function clearTabs()
+    for _, child in ipairs(TabsContainer:GetChildren()) do
+        if not child:IsA("UIListLayout") then
+            child:Destroy()
+        end
+    end
+end
+
+-- Local Player Tab UI Elements
+local function setupLocalPlayerTab()
+    clearTabs()
+
+    -- Jump Power Toggle
+    local jumpToggle = Instance.new("TextButton")
+    jumpToggle.Name = "JumpToggle"
+    jumpToggle.Size = UDim2.new(0, 140, 0, 35)
+    jumpToggle.Position = UDim2.new(0, 10, 0, 10)
+    jumpToggle.BackgroundColor3 = COLOR_ACCENT
+    jumpToggle.TextColor3 = COLOR_BG
+    jumpToggle.Font = Enum.Font.GothamBold
+    jumpToggle.TextSize = 16
+    jumpToggle.Text = "Jump Power: OFF"
+    jumpToggle.Parent = TabsContainer
+    addUICorner(jumpToggle, 6)
+
+    -- Jump Power Slider Label
+    local jumpLabel = Instance.new("TextLabel")
+    jumpLabel.Name = "JumpLabel"
+    jumpLabel.Size = UDim2.new(0, 120, 0, 20)
+    jumpLabel.Position = UDim2.new(0, 160, 0, 15)
+    jumpLabel.BackgroundTransparency = 1
+    jumpLabel.TextColor3 = COLOR_WHITE
+    jumpLabel.Font = Enum.Font.Gotham
+    jumpLabel.TextSize = 14
+    jumpLabel.Text = "Jump Power: 50"
+    jumpLabel.TextXAlignment = Enum.TextXAlignment.Left
+    jumpLabel.Parent = TabsContainer
+
+    -- Jump Power Slider
+    local jumpSlider = Instance.new("TextButton")
+    jumpSlider.Name = "JumpSlider"
+    jumpSlider.Size = UDim2.new(0, 200, 0, 20)
+    jumpSlider.Position = UDim2.new(0, 160, 0, 40)
+    jumpSlider.BackgroundColor3 = COLOR_WHITE
+    jumpSlider.BorderSizePixel = 0
+    jumpSlider.Parent = TabsContainer
+    addUICorner(jumpSlider, 4)
+
+    local jumpFill = Instance.new("Frame")
+    jumpFill.Name = "JumpFill"
+    jumpFill.Size = UDim2.new(0, 0, 1, 0)
+    jumpFill.BackgroundColor3 = COLOR_ACCENT
+    jumpFill.Parent = jumpSlider
+
+    -- Walk Speed Toggle
+    local speedToggle = Instance.new("TextButton")
+    speedToggle.Name = "SpeedToggle"
+    speedToggle.Size = UDim2.new(0, 140, 0, 35)
+    speedToggle.Position = UDim2.new(0, 10, 0, 80)
+    speedToggle.BackgroundColor3 = COLOR_ACCENT
+    speedToggle.TextColor3 = COLOR_BG
+    speedToggle.Font = Enum.Font.GothamBold
+    speedToggle.TextSize = 16
+    speedToggle.Text = "Walk Speed: OFF"
+    speedToggle.Parent = TabsContainer
+    addUICorner(speedToggle, 6)
+
+    -- Walk Speed Slider Label
+    local speedLabel = Instance.new("TextLabel")
+    speedLabel.Name = "SpeedLabel"
+    speedLabel.Size = UDim2.new(0, 120, 0, 20)
+    speedLabel.Position = UDim2.new(0, 160, 0, 85)
+    speedLabel.BackgroundTransparency = 1
+    speedLabel.TextColor3 = COLOR_WHITE
+    speedLabel.Font = Enum.Font.Gotham
+    speedLabel.TextSize = 14
+    speedLabel.Text = "Walk Speed: 16"
+    speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+    speedLabel.Parent = TabsContainer
+
+    -- Walk Speed Slider
+    local speedSlider = Instance.new("TextButton")
+    speedSlider.Name = "SpeedSlider"
+    speedSlider.Size = UDim2.new(0, 200, 0, 20)
+    speedSlider.Position = UDim2.new(0, 160, 0, 110)
+    speedSlider.BackgroundColor3 = COLOR_WHITE
+    speedSlider.BorderSizePixel = 0
+    speedSlider.Parent = TabsContainer
+    addUICorner(speedSlider, 4)
+
+    local speedFill = Instance.new("Frame")
+    speedFill.Name = "SpeedFill"
+    speedFill.Size = UDim2.new(0, 0, 1, 0)
+    speedFill.BackgroundColor3 = COLOR_ACCENT
+    speedFill.Parent = speedSlider
+
+    -- Variables
+    local jumpEnabled = false
+    local speedEnabled = false
+    local jumpPower = 50
+    local walkSpeed = 16
+
+    -- Helper function to update humanoid values
+    local function updateHumanoid()
+        local char = LocalPlayer.Character
+        if not char then return end
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if not humanoid then return end
+
+        if jumpEnabled then
+            humanoid.UseJumpPower = true
+            humanoid.JumpPower = jumpPower
+        else
+            humanoid.UseJumpPower = true
+            humanoid.JumpPower = 50
+        end
+
+        if speedEnabled then
+            humanoid.WalkSpeed = walkSpeed
+        else
+            humanoid.WalkSpeed = 16
+        end
+    end
+
+    -- Toggle Button Logic
+    jumpToggle.MouseButton1Click:Connect(function()
+        jumpEnabled = not jumpEnabled
+        jumpToggle.Text = "Jump Power: "..(jumpEnabled and "ON" or "OFF")
+        updateHumanoid()
+    end)
+
+    speedToggle.MouseButton1Click:Connect(function()
+        speedEnabled = not speedEnabled
+        speedToggle.Text = "Walk Speed: "..(speedEnabled and "ON" or "OFF")
+        updateHumanoid()
+    end)
+
+    -- Slider Logic (Click and drag)
+
+    local draggingJump = false
+    jumpSlider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            draggingJump = true
+        end
+    end)
+    jumpSlider.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            draggingJump = false
+        end
+    end)
+    jumpSlider.InputChanged:Connect(function(input)
+        if draggingJump and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local pos = input.Position.X - jumpSlider.AbsolutePosition.X
+            pos = math.clamp(pos, 0, jumpSlider.AbsoluteSize.X)
+            jumpFill.Size = UDim2.new(0, pos, 1, 0)
+            jumpPower = math.floor((pos / jumpSlider.AbsoluteSize.X) * 200) + 50
+            jumpLabel.Text = "Jump Power: "..jumpPower
+            if jumpEnabled then updateHumanoid() end
+        end
+    end)
+
+    local draggingSpeed = false
+    speedSlider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            draggingSpeed = true
+        end
+    end)
+    speedSlider.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            draggingSpeed = false
+        end
+    end)
+    speedSlider.InputChanged:Connect(function(input)
+        if draggingSpeed and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local pos = input.Position.X - speedSlider.AbsolutePosition.X
+            pos = math.clamp(pos, 0, speedSlider.AbsoluteSize.X)
+            speedFill.Size = UDim2.new(0, pos, 1, 0)
+            walkSpeed = math.floor((pos / speedSlider.AbsoluteSize.X) * 234) + 16
+            speedLabel.Text = "Walk Speed: "..walkSpeed
+            if speedEnabled then updateHumanoid() end
+        end
+    end)
+
+    -- Update humanoid when character respawns
+    LocalPlayer.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        updateHumanoid()
+    end)
+end
+
+-- Debugging Tab UI Elements (scaffold)
+local function setupDebugTab()
+    clearTabs()
+
+    local infoLabel = Instance.new("TextLabel")
+    infoLabel.Size = UDim2.new(1, -20, 0, 100)
+    infoLabel.Position = UDim2.new(0, 10, 0, 10)
+    infoLabel.BackgroundTransparency = 1
+    infoLabel.TextColor3 = COLOR_WHITE
+    infoLabel.Font = Enum.Font.Gotham
+    infoLabel.TextSize = 16
+    infoLabel.TextWrapped = true
+    infoLabel.Text = "Debugging features will be added here.\n\nSend me what debugging tools you want!"
+    infoLabel.Parent = TabsContainer
+end
+
+-- Default tab is Local Player
+setupLocalPlayerTab()
+
+localPlayerTabBtn.BackgroundColor3 = COLOR_WHITE
+localPlayerTabBtn.TextColor3 = COLOR_BG
+debugTabBtn.BackgroundColor3 = COLOR_ACCENT
+debugTabBtn.TextColor3 = COLOR_WHITE
+
+localPlayerTabBtn.MouseButton1Click:Connect(function()
+    setupLocalPlayerTab()
+    localPlayerTabBtn.BackgroundColor3 = COLOR_WHITE
+    localPlayerTabBtn.TextColor3 = COLOR_BG
+    debugTabBtn.BackgroundColor3 = COLOR_ACCENT
+    debugTabBtn.TextColor3 = COLOR_WHITE
+end)
+
+debugTabBtn.MouseButton1Click:Connect(function()
+    setupDebugTab()
+    debugTabBtn.BackgroundColor3 = COLOR_WHITE
+    debugTabBtn.TextColor3 = COLOR_BG
+    localPlayerTabBtn.BackgroundColor3 = COLOR_ACCENT
+    localPlayerTabBtn.TextColor3 = COLOR_WHITE
+end)
+
+-- Allow dragging the main frame by the title bar
+local dragging = false
+local dragInput
+local dragStart
+local startPos
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+TitleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
